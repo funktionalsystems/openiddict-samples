@@ -25,8 +25,7 @@ namespace Velusia.Server
             services.AddDbContext<ApplicationDbContext>(options =>
             {
                 // Configure the context to use Microsoft SQL Server.
-                //options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
-		options.UseSqlite("Data Source=Database.db");
+                options.UseSqlite("Data Source=:memory:");
 
                 // Register the entity sets needed by OpenIddict.
                 // Note: use the generic overload if you need
