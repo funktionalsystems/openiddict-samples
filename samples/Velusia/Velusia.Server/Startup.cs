@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using System;
 using Velusia.Server.Models;
 using Velusia.Server.Services;
@@ -25,7 +26,17 @@ namespace Velusia.Server
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL"));
+                string connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+                Log.Information($"{connectionString}");
+                //Log.
+                if (string.IsNullOrEmpty(connectionString)) {
+                    options.UseSqlite("Data Source=Database.db");
+                } else {
+                    // postgres://${db.USERNAME}:${db.PASSWORD}@${db.HOSTNAME}:${db.PORT}/${db.DATABASE}?sslmode 
+                    connectionString = $"Server={Environment.GetEnvironmentVariable("db.HOSTNAME")};Port={Environment.GetEnvironmentVariable("db.PORT")}};User Id={Environment.GetEnvironmentVariable("db.USERNAME")};Password={Environment.GetEnvironmentVariable("db.PASSWORD")};Database={Environment.GetEnvironmentVariable("db.DATABASE")};";
+                    Log.Information($"{connectionString}");
+                    options.UseNpgsql(connectionString);
+                }
 
                 // Register the entity sets needed by OpenIddict.
                 // Note: use the generic overload if you need
@@ -112,6 +123,8 @@ namespace Velusia.Server
             app.UseDeveloperExceptionPage();
 
             app.UseStaticFiles();
+
+            app.UseSerilogRequestLogging();
 
             app.UseStatusCodePagesWithReExecute("/error");
 
