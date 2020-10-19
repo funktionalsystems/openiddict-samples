@@ -14,6 +14,7 @@ namespace Velusia.Server
                 .Enrich.FromLogContext()
                 .WriteTo.Console()
                 .CreateLogger();
+            Log.Information("Program starting up");
             CreateHostBuilder(args).Build().Run();
         }
 

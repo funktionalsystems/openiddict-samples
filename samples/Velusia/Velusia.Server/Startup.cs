@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Velusia.Server.Models;
 using Velusia.Server.Services;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -22,6 +24,8 @@ namespace Velusia.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
+            Log.Information("ConfigureServices");
+
             services.AddControllersWithViews();
 
             services.AddDbContext<ApplicationDbContext>(options =>
@@ -30,11 +34,14 @@ namespace Velusia.Server
                 Log.Information($"{connectionString}");
                 //Log.
                 if (string.IsNullOrEmpty(connectionString)) {
+                    Log.Information($"Using Sqlite database");
                     options.UseSqlite("Data Source=Database.db");
                 } else {
-                    // postgres://${db.USERNAME}:${db.PASSWORD}@${db.HOSTNAME}:${db.PORT}/${db.DATABASE}?sslmode 
-                    connectionString = $"Server={Environment.GetEnvironmentVariable("db.HOSTNAME")};Port={Environment.GetEnvironmentVariable("db.PORT")}};User Id={Environment.GetEnvironmentVariable("db.USERNAME")};Password={Environment.GetEnvironmentVariable("db.PASSWORD")};Database={Environment.GetEnvironmentVariable("db.DATABASE")};";
-                    Log.Information($"{connectionString}");
+                    // postgresql://USERNAME:PASSWORD@HOSTNAME:PORT/DATABASE?sslmode 
+                    var match = Regex.Matches(connectionString, @"postgresql:\/\/(?<USERNAME>[^:]*):(?<PASSWORD>[^@]*)@(?<HOSTNAME>[^:]*):(?<PORT>[^\/]*)\/(?<DATABASE>[^\?]*)", RegexOptions.IgnoreCase).First();
+                    string connectionOptions = "SSL Mode=Prefer;Trust Server Certificate=true"; //TODO: fix hardcoding
+                    connectionString = $@"Server={match.Groups["HOSTNAME"].Value};Port={match.Groups["PORT"].Value};User Id={ match.Groups["USERNAME"].Value};Password={match.Groups["PASSWORD"].Value};Database={match.Groups["DATABASE"].Value};{connectionOptions}";
+                    Log.Information($"Using postgres database: {connectionString}");
                     options.UseNpgsql(connectionString);
                 }
 
